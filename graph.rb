@@ -9,9 +9,41 @@
 # Bjorn Jensen-Urstad / 2014
 
 class Graph
-  def initialize(spec)
+  def initialize(spec, logger)
+    @logger     = logger
     @order      = kahn_sort(spec2edges(spec))
     @operations = spec2operations(spec)
+  end
+
+  def run(ctx)
+    @order.each{ |op|
+      if @operations.has_key?(op) && !ctx.has_key?(op)
+        ctx[op] = exec(op, ctx)
+      end
+    }
+    ctx
+  end
+
+  private
+
+  def spec2edges(spec)
+    edges = []
+    spec.each_slice(3) {|label, args, function|
+      args.each{ |l|
+        edges << [l, label]
+      }
+    }
+    edges.uniq!
+    @logger.debug("edges: #{edges}")
+    edges
+  end
+
+  def spec2operations(spec)
+    h = {}
+    spec.each_slice(3) { |label, values, function|
+      h[label] = [values, function]
+    }
+    h
   end
 
   def kahn_sort(edges)
@@ -43,30 +75,18 @@ class Graph
         s << e.last if sn.include?(e.last)
       }
     end
-    throw("cycle in graph") if edges.length != 0
-    pp "order: #{l}"
+    raise("cycle in graph") if edges.length != 0
+    @logger.debug("order: #{l}")
     l
   end
 
-  def spec2operations(spec)
-    h = {}
-    spec.each_slice(3) { |label, values, function|
-      h[label] = [values, function]
-    }
-    h
-  end
-
-  def run(ctx)
-    @order.each{ |op|
-      ctx[op] = exec(op, ctx) if @operations.has_key?(op)
-    }
-    ctx
-  end
-
   def exec(op, ctx)
-    pp "executing #{op}"
     values, func = @operations[op]
-    args = values.map{|k| ctx[k]}
+    args = values.map{|k|
+      raise("missing key #{k} from ctx") unless ctx.has_key?(k)
+      ctx[k]
+    }
+    @logger.debug("executing #{op} with #{args}")
     func.call(*args)
   end
 
@@ -79,20 +99,10 @@ class Graph
     nodes.uniq
   end
 
-  def spec2edges(spec)
-    edges = []
-    spec.each_slice(3) {|label, args, function|
-      args.each{ |l|
-        edges << [l, label]
-      }
-    }
-    edges.uniq
-  end
-
   def start_nodes(nodes, edges)
-    h = {}
-    edges.each{ |element|
-      h[element.last] = 1
+    h = edges.inject({}){ |h,e|
+      h.store(e.last, 1)
+      h
     }
     nodes.select{ |n| !h.has_key?(n)}
   end
