@@ -91,18 +91,14 @@ class Graph
   end
 
   def nodes(edges)
-    nodes = []
-    edges.each{ |l|
-      nodes << l.first
-      nodes << l.last
-    }
-    nodes.uniq
+    edges.map{ |l|
+      [l.first, l.last]
+    }.flatten.uniq
   end
 
   def start_nodes(nodes, edges)
     h = edges.inject({}){ |h,e|
-      h.store(e.last, 1)
-      h
+      h.merge(e.last => 1)
     }
     nodes.select{ |n| !h.has_key?(n)}
   end
