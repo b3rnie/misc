@@ -81,10 +81,9 @@ class Graph
   end
 
   def exec(op, ctx)
-    values, func = @operations[op]
+    values, func = @operations.fetch(op)
     args = values.map{|k|
-      raise("missing key #{k} from ctx") unless ctx.has_key?(k)
-      ctx[k]
+      ctx.fetch(k)
     }
     @logger.debug("executing #{op} with #{args}")
     func.call(*args)

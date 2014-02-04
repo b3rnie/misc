@@ -19,7 +19,7 @@ class TestGraph < Test::Unit::TestCase
 
   def test_missing_input
     g = Graph.new([:y, [:x], lambda { |x| x*x }], Logger.new(STDOUT))
-    assert_raise(RuntimeError) { g.run(:z => 1) }
+    assert_raise(KeyError) { g.run(:z => 1) }
   end
 
   def test_cycle
